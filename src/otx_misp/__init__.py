@@ -1,5 +1,7 @@
 from __future__ import unicode_literals
 
+import os
+import re
 import logging
 import time
 from datetime import datetime
@@ -36,6 +38,9 @@ _misp_server_version = None
 
 # Cache to hold all MISP tags available in the MISP instance
 _otx_tags_cache = None
+
+# Cache (list) to hold regular expression for pulse titles we want to ignore/blacklist
+_otx_blacklisted_titles = []
 
 def misp_server_version(misp):
     """
@@ -132,7 +137,7 @@ def get_pulses_iter(otx_api_key, from_timestamp=None):
     return otx.getsince_iter(from_timestamp)
 
 
-def create_events(pulse_or_list, author=False, server=False, key=False, misp=False, distribution=0, threat_level=4,
+def create_events(pulse_or_list, author=False, server=False, key=False, misp=False, blacklist_file = None, distribution=0, threat_level=4,
                   analysis=2, publish=True, tlp=True, discover_tags=False, to_ids=False, author_tag=False,
                   bulk_tag=None, dedup_titles=False, stop_on_error=False):
     """
@@ -145,6 +150,8 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
     :param key: MISP API key
     :param misp: MISP connection object
     :type misp: :class:`pymisp.PyMISP`
+    :param blacklist_file: The name of a file containing a list of pulse title regexes for pulses taht should be ignored
+    :type blacklist_file: String
     :param distribution: distribution of the MISP event (0-4)
     :param threat_level: threat level of the MISP object (1-4)
     :param analysis: analysis stae of the MISP object (0-2)
@@ -172,10 +179,23 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
             raise ImportException("Cannot connect to MISP instance: {}".format(ex.message))
         except Exception as ex:
             raise ImportException("Cannot connect to MISP instance, unknown exception: {}".format(ex.message))
-        # Let's load in cache all MISP tags available on the instance
-        global _otx_tags_cache
-        if _otx_tags_cache is None:
-            _otx_tags_cache = misp.tags()
+          
+    # Let's load the list of blacklisted pulse titles, if exists
+    global _otx_blacklisted_titles
+    if blacklist_file and not _otx_blacklisted_titles:
+        if not os.path.isfile(blacklist_file):
+            log.warn("The blacklisted pulse titles file that has been provided does not exist: {}".format(blacklist_file))
+        else:
+            with open(blacklist_file) as f:
+                lines = f.read().splitlines()
+            for line in lines:
+                if line != "":
+                    _otx_blacklisted_titles.append(re.compile(line))
+                
+    # Let's load in cache all MISP tags available on the instance
+    global _otx_tags_cache
+    if _otx_tags_cache is None:
+        _otx_tags_cache = misp.tags()
 
     if discover_tags:
         def get_tag_name(complete):
@@ -203,7 +223,8 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
                                            distribution=distribution, threat_level=threat_level, analysis=analysis,
                                            publish=publish, tlp=tlp, to_ids=to_ids, author_tag=author_tag,
                                            bulk_tag=bulk_tag, dedup_titles=dedup_titles, stop_on_error=stop_on_error)
-                misp_events.append(misp_event)
+                if misp_event:
+                    misp_events.append(misp_event)
             except Exception as ex:
                 if stop_on_error:
                     raise
@@ -225,6 +246,12 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
         log.error("Cannot parse Pulse 'created' date.")
         dt = datetime.utcnow()
     event_date = dt.strftime('%Y-%m-%d')
+    
+    # Let's ignore the pulse if its title is blacklisted
+    for regex in _otx_blacklisted_titles:
+        if regex.match(pulse['name']):
+                log.info("## *** IGNORED *** {name} - {date}".format(name=event_name, date=event_date))
+                return None
     log.info("## {name} - {date}".format(name=event_name, date=event_date))
     result_event = {
         'name': event_name,

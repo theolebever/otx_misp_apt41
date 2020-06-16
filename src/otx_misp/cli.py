@@ -65,6 +65,7 @@ parser.add_argument('-s', '--server', help="MISP server URL")
 parser.add_argument('-m', '--misp', help='MISP API key', dest='misp')
 parser.add_argument('-t', '--timestamp', help='Last import as Date/Time ISO format or UNIX timestamp', type=timestamp,
                     dest='timestamp', default=None)
+parser.add_argument('-b', '--blacklist-file', help='A file containing a list of regex (one per line) of pulse titles you want to ignore', type=str)
 parser.add_argument('-c', '--config-file', dest='config')
 parser.add_argument('-w', '--write-config', help='Write the configuration file', action='store_true')
 parser.add_argument('-a', '--author', help='Add the Pulse author name in the MISP Info field', action='store_true')
@@ -145,6 +146,7 @@ def main(args=None):
         kwargs = {
             'server': config.server,
             'key': config.misp,
+            'blacklist_file': config.blacklist_file,            
             'distribution': config.distribution,
             'threat_level': config.threat_level,
             'analysis': config.analysis,
