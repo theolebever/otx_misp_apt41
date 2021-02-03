@@ -479,8 +479,9 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
 
         elif ind_type == 'CVE':
             log.info("\t - Adding CVE: {}".format(ind_val))
-            a.type = 'External analysis'
+            a.category = 'External analysis'
             a.type = 'vulnerability'
+            a.disable_correlation = True
             add_attribute(misp, event, a)            
             result_event['attributes']['cves'].append(ind_val)
             
