@@ -299,7 +299,7 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
         else:
             event = ''
             # Search MISP for the title
-            result = misp.search(eventinfo=event_name, metadata=True)
+            result = misp.search(controller='events', eventinfo=event_name, metadata=True)
             if len(result) == 0:
                 event = pymisp.MISPEvent()
                 event.distribution = distribution
