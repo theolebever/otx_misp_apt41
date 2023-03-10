@@ -21,11 +21,11 @@ class Configuration(object):
     """ Object holding the configuration """
     properties = {'otx': True, 'misp': True, 'server': True, 'timestamp': False, 'author': False,
                   'blacklist_file': False, 'distribution': False, 'threat_level': False, 'analysis': False, 'update_timestamp': False,
-                  'publish': False, 'tlp': False, 'discover_tags': False, 'to_ids': False, 'author_tag': False,
+                  'publish': False, 'tlp': False, 'discover_tags': False, 'discover_techniques' : False, 'to_ids': False, 'author_tag': False,
                   'bulk_tag': False, 'dedup_titles': False, 'stop_on_error': False}
     simulation_properties = {'otx': True, 'misp': True, 'server': True, 'timestamp': False, 'author': False,
                              'blacklist_file': False, 'distribution': False, 'threat_level': False, 'analysis': False, 'update_timestamp': False,
-                             'publish': False, 'tlp': False, 'discover_tags': False, 'to_ids': False,
+                             'publish': False, 'tlp': False, 'discover_tags': False, 'discover_techniques' : False, 'to_ids': False,
                              'author_tag': False, 'bulk_tag': False, 'dedup_titles': False, 'stop_on_error': False}
     defaults = {'distribution': 0, 'threat_level': 4, 'analysis': 2, 'timestamp': datetime.utcfromtimestamp(0),
                 'update_timestamp': False}

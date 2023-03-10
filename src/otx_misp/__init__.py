@@ -11,14 +11,14 @@ import six
 
 import pymisp
 import requests
-from .otx import OTXv2
+from OTXv2 import OTXv2
 
 try:
   basestring
 except NameError:
   basestring = str
 
-__version__ = "1.4.2"
+__version__ = "1.4.3"
 
 # Try to disable verify SSL warnings
 try:
@@ -38,6 +38,8 @@ _misp_server_version = None
 
 # Cache to hold all MISP tags available in the MISP instance
 _otx_tags_cache = None
+# Cache to hold all MISP galaxies available in the MISP instance
+_otx_galaxies_cache = None
 
 # Cache (list) to hold regular expression for pulse titles we want to ignore/blacklist
 _otx_blacklisted_titles = []
@@ -138,7 +140,7 @@ def get_pulses_iter(otx_api_key, from_timestamp=None):
 
 
 def create_events(pulse_or_list, author=False, server=False, key=False, misp=False, blacklist_file = None, distribution=0, threat_level=4,
-                  analysis=2, publish=True, tlp=True, discover_tags=False, to_ids=False, author_tag=False,
+                  analysis=2, publish=True, tlp=True, discover_tags=False, discover_techniques=False, to_ids=False, author_tag=False,
                   bulk_tag=None, dedup_titles=False, stop_on_error=False):
     """
     Parse a Pulse or a list of Pulses and add it/them to MISP if server and key are present
@@ -160,6 +162,7 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
     :param tlp: Add TLP level tag to event
     :type tlp: Boolean
     :param discover_tags: discover MISP tags from Pulse tags
+    :param discover_techniques: discover MITRE Att&ck techniques from Pulse
     :type discover_tags: Boolean
     :param to_ids: Flag pulse attributes as being sent to an IDS
     :type to_ids: Boolean
@@ -179,7 +182,7 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
             raise ImportException("Cannot connect to MISP instance: {}".format(ex.message))
         except Exception as ex:
             raise ImportException("Cannot connect to MISP instance, unknown exception: {}".format(ex.message))
-          
+
     # Let's load the list of blacklisted pulse titles, if exists
     global _otx_blacklisted_titles
     if blacklist_file and not _otx_blacklisted_titles:
@@ -197,6 +200,11 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
     if _otx_tags_cache is None:
         _otx_tags_cache = misp.tags()
 
+    # Let's load in cache all MISP galaxies available on the instance
+    global _otx_galaxies_cache
+    if _otx_galaxies_cache is None:
+        _otx_galaxies_cache = misp.galaxies()
+        
     if discover_tags:
         def get_tag_name(complete):
             parts = complete.split('=')
@@ -257,6 +265,7 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
         'name': event_name,
         'date': event_date,
         'tags': list(),
+        'attack_techniques': list(),      
         'attributes': {
             'hashes': {
                 'md5': list(),
@@ -342,7 +351,23 @@ def create_events(pulse_or_list, author=False, server=False, key=False, misp=Fal
                 log.info("\t - Adding tag: {}".format(tag))
                 tag_event(misp, event, tag)
                 result_event['tags'].append(tag)
-                
+
+    # Discover MITRE attacck techniques in the pulse and add them as MISP galaxy tags
+    # The so-called cluster's connector tag must be declared in MISP
+    # In MISP, we are looking for tags of the form : misp-galaxy:mitre-attack-pattern="Acquire and/or use 3rd party software services - T1308" 
+    if misp and discover_techniques and 'attack_ids' in pulse:
+      for id in pulse['attack_ids']:
+        # Let's add only the most recent corresponding tag, to prevent ading dupplicate or even obsolete galaxyclusters
+        besttag = None
+        for tag in _otx_tags_cache:
+          if (' - ' + id + '"' in tag['name']) and ('misp-galaxy:mitre-attack-pattern=' in tag['name']):
+            if besttag is None or tag['id'] > besttag['id']:
+              besttag = tag
+        if besttag is not None:
+          log.info("\t - Adding attack technique tag: {}".format(besttag['name']))
+          tag_event(misp, event, besttag['name'])
+          result_event['attack_techniques'].append(besttag['name'])
+            
     if 'references' in pulse:
         for reference in pulse['references']:
             if reference:

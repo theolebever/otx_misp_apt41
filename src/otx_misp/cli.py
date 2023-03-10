@@ -24,7 +24,7 @@ from dateutil import parser as date_parser
 
 from otx_misp.configuration import Configuration
 from otx_misp import get_pulses_iter as get_pulses, create_events
-from .otx import InvalidAPIKey, BadRequest
+from OTXv2 import InvalidAPIKey, BadRequest
 
 log = logging.getLogger('otx_misp')
 console_handler = logging.StreamHandler()
@@ -80,6 +80,8 @@ parser.add_argument("-v", "--verbose", dest="verbose",
 parser.add_argument('--no-tlp', help='No Traffic Light Protocol tag',
                     action='store_false', dest='tlp')
 parser.add_argument('--discover-tags', help='Discover tags to add to MISP events',
+                    action='store_true')
+parser.add_argument('--discover-techniques', help='Discover MITRE attack techniques to add to MISP events',
                     action='store_true')
 parser.add_argument('--to-ids', help='Mark IOCs as exportable to IDS',
                     action='store_true')
@@ -152,6 +154,7 @@ def main(args=None):
             'analysis': config.analysis,
             'tlp': config.tlp,
             'discover_tags': config.discover_tags,
+            'discover_techniques': config.discover_techniques, 
             'to_ids': config.to_ids,
             'author_tag': config.author_tag,
             'bulk_tag': config.bulk_tag,
