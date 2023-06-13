@@ -26,7 +26,7 @@ from otx_misp.configuration import Configuration
 from otx_misp import get_pulses_iter as get_pulses, create_events
 from OTXv2 import InvalidAPIKey, BadRequest
 
-log = logging.getLogger('otx_misp')
+log = logging.getLogger("otx_misp")
 console_handler = logging.StreamHandler()
 log.addHandler(console_handler)
 
@@ -40,9 +40,9 @@ def timestamp(argument):
     return date
 
 
-misp_distributions = ['organisation', 'community', 'connected', 'all']
-misp_threat_levels = ['high', 'medium', 'low', 'undefined']
-misp_analysis = ['initial', 'ongoing', 'completed']
+misp_distributions = ["organisation", "community", "connected", "all"]
+misp_threat_levels = ["high", "medium", "low", "undefined"]
+misp_analysis = ["initial", "ongoing", "completed"]
 
 
 def get_misp_type(choices, bias=0):
@@ -59,72 +59,145 @@ def get_misp_type(choices, bias=0):
     return misp_type
 
 
-parser = argparse.ArgumentParser(description='Downloads OTX pulses and add them to MISP.')
-parser.add_argument('-o', '--otx', help="Alienvault OTX API key", dest='otx')
-parser.add_argument('-s', '--server', help="MISP server URL")
-parser.add_argument('-m', '--misp', help='MISP API key', dest='misp')
-parser.add_argument('-t', '--timestamp', help='Last import as Date/Time ISO format or UNIX timestamp', type=timestamp,
-                    dest='timestamp', default=None)
-parser.add_argument('-b', '--blacklist-file', help='A file containing a list of regex (one per line) of pulse titles you want to ignore', type=str)
-parser.add_argument('-c', '--config-file', dest='config')
-parser.add_argument('-w', '--write-config', help='Write the configuration file', action='store_true')
-parser.add_argument('-a', '--author', help='Add the Pulse author name in the MISP Info field', action='store_true')
-parser.add_argument('-u', '--update-timestamp', help='Updates the timestamp in the configuaration file',
-                    action='store_const', const=True)
-parser.add_argument('-n', '--no-publish', help="Don't publish the MISP event" , action='store_false', dest='publish')
-parser.add_argument('-d', '--dry-run', help="Fetch the pulses but don't create MISP events. Use -v[v] to see details.",
-                    action='store_true', dest='simulate')
-parser.add_argument("-v", "--verbose", dest="verbose",
-                    action="count", default=0,
-                    help="Verbosity, repeat to increase the verbosity level.")
-parser.add_argument('--no-tlp', help='No Traffic Light Protocol tag',
-                    action='store_false', dest='tlp')
-parser.add_argument('--discover-tags', help='Discover tags to add to MISP events',
-                    action='store_true')
-parser.add_argument('--discover-techniques', help='Discover MITRE attack techniques to add to MISP events',
-                    action='store_true')
-parser.add_argument('--to-ids', help='Mark IOCs as exportable to IDS',
-                    action='store_true')
-parser.add_argument('--distribution',
-                    help="MISP distribution of events ({}), default: {}".format(','.join(misp_distributions),
-                                                                                misp_distributions[0]),
-                    type=get_misp_type(misp_distributions), default=None)
-parser.add_argument('--threat-level',
-                    help="MISP threat level of events ({}), default: {}".format(','.join(misp_threat_levels),
-                                                                                misp_threat_levels[3]),
-                    type=get_misp_type(misp_threat_levels, bias=1), default=None)
-parser.add_argument('--analysis',
-                    help="MISP analysis state of events ({}), default: {}".format(','.join(misp_analysis),
-                                                                                  misp_analysis[2]),
-                    type=get_misp_type(misp_analysis), default=None)
-parser.add_argument('--author-tag', help="Add the pulse author as an event tag",
-                    action='store_true')
-parser.add_argument('--bulk-tag', help="Add a custom tag that will be added to all events (e.g. OTX)",
-                    type=str)
-parser.add_argument('--dedup-titles',
-                    help="Search MISP for an existing event title and update it, rather than create a new one",
-                    action='store_true')
-parser.add_argument('--stop-on-error',
-                    help="Stop import when an exception is raised",
-                    action='store_true')
+parser = argparse.ArgumentParser(
+    description="Downloads OTX pulses and add them to MISP."
+)
+parser.add_argument("-o", "--otx", help="Alienvault OTX API key", dest="otx")
+parser.add_argument("-s", "--server", help="MISP server URL")
+parser.add_argument("-m", "--misp", help="MISP API key", dest="misp")
+parser.add_argument(
+    "-t",
+    "--timestamp",
+    help="Last import as Date/Time ISO format or UNIX timestamp",
+    type=timestamp,
+    dest="timestamp",
+    default=None,
+)
+parser.add_argument(
+    "-b",
+    "--blacklist-file",
+    help="A file containing a list of regex (one per line) of pulse titles you want to ignore",
+    type=str,
+)
+parser.add_argument("-c", "--config-file", dest="config")
+parser.add_argument(
+    "-w", "--write-config", help="Write the configuration file", action="store_true"
+)
+parser.add_argument(
+    "-a",
+    "--author",
+    help="Add the Pulse author name in the MISP Info field",
+    action="store_true",
+)
+parser.add_argument(
+    "-u",
+    "--update-timestamp",
+    help="Updates the timestamp in the configuaration file",
+    action="store_const",
+    const=True,
+)
+parser.add_argument(
+    "-n",
+    "--no-publish",
+    help="Don't publish the MISP event",
+    action="store_false",
+    dest="publish",
+)
+parser.add_argument(
+    "-d",
+    "--dry-run",
+    help="Fetch the pulses but don't create MISP events. Use -v[v] to see details.",
+    action="store_true",
+    dest="simulate",
+)
+parser.add_argument(
+    "-v",
+    "--verbose",
+    dest="verbose",
+    action="count",
+    default=0,
+    help="Verbosity, repeat to increase the verbosity level.",
+)
+parser.add_argument(
+    "--no-tlp", help="No Traffic Light Protocol tag", action="store_false", dest="tlp"
+)
+parser.add_argument(
+    "--discover-tags", help="Discover tags to add to MISP events", action="store_true"
+)
+parser.add_argument(
+    "--discover-techniques",
+    help="Discover MITRE attack techniques to add to MISP events",
+    action="store_true",
+)
+parser.add_argument(
+    "--to-ids", help="Mark IOCs as exportable to IDS", action="store_true"
+)
+parser.add_argument(
+    "--distribution",
+    help="MISP distribution of events ({}), default: {}".format(
+        ",".join(misp_distributions), misp_distributions[0]
+    ),
+    type=get_misp_type(misp_distributions),
+    default=None,
+)
+parser.add_argument(
+    "--threat-level",
+    help="MISP threat level of events ({}), default: {}".format(
+        ",".join(misp_threat_levels), misp_threat_levels[3]
+    ),
+    type=get_misp_type(misp_threat_levels, bias=1),
+    default=None,
+)
+parser.add_argument(
+    "--analysis",
+    help="MISP analysis state of events ({}), default: {}".format(
+        ",".join(misp_analysis), misp_analysis[2]
+    ),
+    type=get_misp_type(misp_analysis),
+    default=None,
+)
+parser.add_argument(
+    "--author-tag", help="Add the pulse author as an event tag", action="store_true"
+)
+parser.add_argument(
+    "--bulk-tag",
+    help="Add a custom tag that will be added to all events (e.g. OTX)",
+    type=str,
+)
+parser.add_argument(
+    "--dedup-titles",
+    help="Search MISP for an existing event title and update it, rather than create a new one",
+    action="store_true",
+)
+parser.add_argument(
+    "--stop-on-error",
+    help="Stop import when an exception is raised",
+    action="store_true",
+)
 
 
 def main(args=None):
     args = parser.parse_args(args=args)
     if args.verbose == 1:
-        log.setLevel('WARNING')
+        log.setLevel("WARNING")
     elif args.verbose == 2:
-        log.setLevel('INFO')
+        log.setLevel("INFO")
     elif args.verbose >= 3:
-        log.setLevel('DEBUG')
+        log.setLevel("DEBUG")
     else:
-        log.setLevel('ERROR')
+        log.setLevel("ERROR")
     if args.simulate:
         if (not args.config or not os.path.isfile(args.config)) and not args.otx:
-            log.error("You must either give an existing config file or your OTX API key with '--dry-run'.")
+            log.error(
+                "You must either give an existing config file or your OTX API key with '--dry-run'."
+            )
             sys.exit(4)
-    elif (not args.config or not os.path.isfile(args.config)) and not (args.otx and args.server and args.misp):
-        log.error("You must either give an existing config file or your API keys and the MISP server URL.")
+    elif (not args.config or not os.path.isfile(args.config)) and not (
+        args.otx and args.server and args.misp
+    ):
+        log.error(
+            "You must either give an existing config file or your API keys and the MISP server URL."
+        )
         sys.exit(2)
     try:
         config = Configuration(args)
@@ -138,7 +211,9 @@ def main(args=None):
         log.error("Wrong API key: '{}'".format(config.otx))
         sys.exit(11)
     except ValueError as ex:
-        log.error("Cannot use last import timestamp '{}'".format(config.timestamp.isoformat()))
+        log.error(
+            "Cannot use last import timestamp '{}'".format(config.timestamp.isoformat())
+        )
         sys.exit(12)
     except BadRequest:
         log.error("Bad request")
@@ -146,25 +221,25 @@ def main(args=None):
     kwargs = {}
     if not config.simulate:
         kwargs = {
-            'server': config.server,
-            'key': config.misp,
-            'blacklist_file': config.blacklist_file,            
-            'distribution': config.distribution,
-            'threat_level': config.threat_level,
-            'analysis': config.analysis,
-            'tlp': config.tlp,
-            'discover_tags': config.discover_tags,
-            'discover_techniques': config.discover_techniques, 
-            'to_ids': config.to_ids,
-            'author_tag': config.author_tag,
-            'bulk_tag': config.bulk_tag,
-            'dedup_titles': config.dedup_titles,
-            'stop_on_error': config.stop_on_error
+            "server": config.server,
+            "key": config.misp,
+            "blacklist_file": config.blacklist_file,
+            "distribution": config.distribution,
+            "threat_level": config.threat_level,
+            "analysis": config.analysis,
+            "tlp": config.tlp,
+            "discover_tags": config.discover_tags,
+            "discover_techniques": config.discover_techniques,
+            "to_ids": config.to_ids,
+            "author_tag": config.author_tag,
+            "bulk_tag": config.bulk_tag,
+            "dedup_titles": config.dedup_titles,
+            "stop_on_error": config.stop_on_error,
         }
         try:
             import pymisp
         except ImportError:
-            log.error('PyMISP is not installed. Aborting.')
+            log.error("PyMISP is not installed. Aborting.")
             sys.exit(20)
     try:
         create_events(pulses, author=config.author, **kwargs)
@@ -173,7 +248,7 @@ def main(args=None):
         sys.exit(21)
     if config.write_config or config.update_timestamp:
         if args.config:
-            with open(args.config, 'w') as f:
+            with open(args.config, "w") as f:
                 config.write(f)
         else:
             config.write(sys.stdout)

@@ -18,18 +18,58 @@ class ConfigurationError(Exception):
 
 
 class Configuration(object):
-    """ Object holding the configuration """
-    properties = {'otx': True, 'misp': True, 'server': True, 'timestamp': False, 'author': False,
-                  'blacklist_file': False, 'distribution': False, 'threat_level': False, 'analysis': False, 'update_timestamp': False,
-                  'publish': False, 'tlp': False, 'discover_tags': False, 'discover_techniques' : False, 'to_ids': False, 'author_tag': False,
-                  'bulk_tag': False, 'dedup_titles': False, 'stop_on_error': False}
-    simulation_properties = {'otx': True, 'misp': True, 'server': True, 'timestamp': False, 'author': False,
-                             'blacklist_file': False, 'distribution': False, 'threat_level': False, 'analysis': False, 'update_timestamp': False,
-                             'publish': False, 'tlp': False, 'discover_tags': False, 'discover_techniques' : False, 'to_ids': False,
-                             'author_tag': False, 'bulk_tag': False, 'dedup_titles': False, 'stop_on_error': False}
-    defaults = {'distribution': 0, 'threat_level': 4, 'analysis': 2, 'timestamp': datetime.utcfromtimestamp(0),
-                'update_timestamp': False}
-    config_section = 'otx_misp'
+    """Object holding the configuration"""
+
+    properties = {
+        "otx": True,
+        "misp": True,
+        "server": True,
+        "timestamp": False,
+        "author": False,
+        "blacklist_file": False,
+        "distribution": False,
+        "threat_level": False,
+        "analysis": False,
+        "update_timestamp": False,
+        "publish": False,
+        "tlp": False,
+        "discover_tags": False,
+        "discover_techniques": False,
+        "to_ids": False,
+        "author_tag": False,
+        "bulk_tag": False,
+        "dedup_titles": False,
+        "stop_on_error": False,
+    }
+    simulation_properties = {
+        "otx": True,
+        "misp": True,
+        "server": True,
+        "timestamp": False,
+        "author": False,
+        "blacklist_file": False,
+        "distribution": False,
+        "threat_level": False,
+        "analysis": False,
+        "update_timestamp": False,
+        "publish": False,
+        "tlp": False,
+        "discover_tags": False,
+        "discover_techniques": False,
+        "to_ids": False,
+        "author_tag": False,
+        "bulk_tag": False,
+        "dedup_titles": False,
+        "stop_on_error": False,
+    }
+    defaults = {
+        "distribution": 0,
+        "threat_level": 4,
+        "analysis": 2,
+        "timestamp": datetime.utcfromtimestamp(0),
+        "update_timestamp": False,
+    }
+    config_section = "otx_misp"
 
     def __init__(self, arguments):
         self.config = configparser.SafeConfigParser(allow_no_value=True)
@@ -57,24 +97,28 @@ class Configuration(object):
             value = getattr(self.arguments, key, None)
             if isinstance(value, bool):
                 if value:
-                    value = 'yes'
+                    value = "yes"
                 else:
-                    value = 'no'
+                    value = "no"
             elif isinstance(value, (list, tuple)):
-                value = ','.join(value)
+                value = ",".join(value)
             elif isinstance(value, datetime):
                 value = value.isoformat()
             elif isinstance(value, int):
-                value = '{}'.format(value)
+                value = "{}".format(value)
             if value is not None:
                 self.config.set(self.config_section, key, value)
             if required:
                 try:
                     value = self.config.get(self.config_section, key)
                 except configparser.NoOptionError:
-                    raise ConfigurationError("Missing required parameter: '--{}'".format(key))
+                    raise ConfigurationError(
+                        "Missing required parameter: '--{}'".format(key)
+                    )
                 if value is None:
-                    raise ConfigurationError("Missing required parameter: '--{}'".format(key))
+                    raise ConfigurationError(
+                        "Missing required parameter: '--{}'".format(key)
+                    )
 
     def __getattr__(self, item):
         if item not in self.arguments:
@@ -82,13 +126,15 @@ class Configuration(object):
         value = getattr(self.arguments, item, None)
         if value is None and item in self.defaults:
             value = self.defaults[item]
-        if item not in self.properties or not self.config.has_option(self.config_section, item):
+        if item not in self.properties or not self.config.has_option(
+            self.config_section, item
+        ):
             return value
         if isinstance(value, bool):
             return self.config.getboolean(self.config_section, item)
         elif isinstance(value, (list, tuple)):
             parameter = self.config.get(self.config_section, item)
-            return parameter.split(',')
+            return parameter.split(",")
         elif isinstance(value, datetime):
             parameter = self.config.get(self.config_section, item)
             if parameter is not None:
@@ -106,5 +152,5 @@ class Configuration(object):
         else:
             config = self.original_config
         if self.update_timestamp:
-            config.set(self.config_section, 'timestamp', datetime.utcnow().isoformat())
+            config.set(self.config_section, "timestamp", datetime.utcnow().isoformat())
         return config.write(fp)
