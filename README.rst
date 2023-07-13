@@ -34,6 +34,13 @@ Imports Alienvault OTX pulses to a MISP instance.
 
 * Free software: Apache 2.0 license
 
+Compilation
+============
+::
+
+    python3 setup.py bdist_wheel
+
+
 Installation
 ============
 
@@ -41,7 +48,7 @@ Python 2 support will be dropped soon.
 
 ::
 
-    pip install otx-misp
+    pip install dist/otx_misp-1.4.3-py2.py3-none-any.whl
 
 Documentation
 =============
